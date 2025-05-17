@@ -1,8 +1,13 @@
-<script setup></script>
+<script setup>
+import { inject } from 'vue';
+
+const rem = inject('remToPixel');
+
+</script>
 
 <template>
   <div class="home-page-wrapper">
-    {{ $t('homeText') }}
+    {{ rem }}
   </div>
 </template>
 
@@ -12,5 +17,6 @@
   width: 100%;
   display: grid;
   overflow: hidden;
+  color: $color-red;
 }
 </style>

@@ -1,9 +1,8 @@
 <script setup>
 import { RouterView, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
-
 import { useCommon } from '@/stores/common.store.js';
-
+import { useRemIndicator } from '@/composables/remIndicatorComposable';
 import CircularProgressBar from '@/components/sharedComponents/CircularProgressBar.vue';
 
 const useCommonStore = useCommon();
@@ -14,6 +13,9 @@ const init = () => {
   // Call any API call here that needs to happen on app initialization
 };
 
+// Initialize REM indicator functionality
+const { remIndicatorRef } = useRemIndicator();
+
 init();
 </script>
 
@@ -22,7 +24,7 @@ init();
     <RouterView :key="route.fullPath" />
     <CircularProgressBar v-if="commonLoaderState"></CircularProgressBar>
   </div>
-  <div id="remIndicator"></div>
+  <div id="remIndicator" ref="remIndicatorRef"></div>
 </template>
 
 <style scoped>
