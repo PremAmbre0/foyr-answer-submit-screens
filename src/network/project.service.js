@@ -25,3 +25,10 @@ export const login = async (data) => {
     return handle401(e);
   });
 };
+
+export const fetchQuestionnaireById = async (questionnaireId) => {
+  return getAPIResponse(routes.getQuestionnaireById(questionnaireId)).catch((e) => {
+    console.error('Error fetching questionnaire:', e);
+    return handle401(e);
+  });
+};

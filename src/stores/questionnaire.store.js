@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { fetchQuestionnaireById } from '@/network/project.service';
 
 export const useQuestionnaire = defineStore('questionnaire', {
   state: () => ({
@@ -6,90 +7,60 @@ export const useQuestionnaire = defineStore('questionnaire', {
     currentQuestionIndex: 0,
     isInitialized: false,
     showProgressBar: false,
+    isPreviewMode: false,
   }),
   actions: {
-    async initializeQuestionnaire(questionnaireId) {
-      // Mock API call - returns true for now
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // Mock questionnaire data
-          const mockData = {
-            _id: questionnaireId || '68f77abbd2dceb8327c04199',
-            title: 'Questionnaire',
-            themeColor: '#000000',
-            completionPercentage: 0,
-            welcomeScreen: {
-              title: 'Welcome to Your Kitchen Vision Questionnaire',
-              description: 'Tell us a bit about your vision for your dream kitchen.',
-              logoUrl: 'https://example.com/logo.png',
-            },
-            questions: [
-              {
-                _id: '68f77bb0d2dceb8327c041a5',
-                question: "What's inspiring this kitchen renovation?",
-                description: 'e.g., need more space, want a modern upgrade, better lighting, etc.',
-                type: 'SHORT_TEXT',
-                required: true,
-                order: 0,
-                answer: null,
-              },
-              {
-                _id: '68f77bb0d2dceb8327c041a6',
-                question: 'What is your preferred kitchen style?',
-                description: 'Modern, Traditional, Rustic, Contemporary, etc.',
-                type: 'SHORT_TEXT',
-                required: true,
-                order: 1,
-                answer: null,
-              },
-              {
-                _id: '68f77bb0d2dceb8327c041a7',
-                question: 'What is your budget range for this project?',
-                description: 'Please provide an approximate range',
-                type: 'SHORT_TEXT',
-                required: true,
-                order: 2,
-                answer: null,
-              },
-              {
-                _id: '68f77bb0d2dceb8327c041a8',
-                question: 'How many people typically use your kitchen?',
-                description: 'This helps us understand space requirements',
-                type: 'SHORT_TEXT',
-                required: false,
-                order: 3,
-                answer: null,
-              },
-              {
-                _id: '68f77bb0d2dceb8327c041a9',
-                question: 'What appliances do you want to include?',
-                description: 'e.g., refrigerator, oven, microwave, dishwasher, etc.',
-                type: 'LONG_TEXT',
-                required: true,
-                order: 4,
-                answer: null,
-              },
-              {
-                _id: '68f77bb0d2dceb8327c041aa',
-                question: 'Any specific features or requirements?',
-                description: 'Island, breakfast bar, pantry, special storage, etc.',
-                type: 'LONG_TEXT',
-                required: false,
-                order: 5,
-                answer: null,
-              },
-            ],
-            endScreen: {
-              title: 'Thank you for sharing your vision!',
-              bodyText: 'Our design team will review your feedback and reach out soon with a proposal.',
-            },
+    async initializeQuestionnaire(questionnaireId, isPreviewMode = false) {
+      // Set preview mode flag
+      this.isPreviewMode = isPreviewMode;
+      
+      console.log(`[INIT] Questionnaire ID: ${questionnaireId}, Preview Mode: ${isPreviewMode}`);
+      
+      // Fallback to default ID if none provided
+      const id = questionnaireId || '68f88d45c1eb11c1c26560cf';
+      
+      try {
+        // Fetch real questionnaire data from API
+        const response = await fetchQuestionnaireById(id);
+        
+        console.log('[DEBUG] API Response:', response);
+        
+        // API returns { data: { success, message, data: {...} } }
+        const apiData = response?.data?.data;
+        
+        if (apiData) {
+          // Initialize completionPercentage if not present
+          const questionnaireData = {
+            ...apiData,
+            completionPercentage: apiData.completionPercentage || 0,
           };
-
-          this.questionnaireData = mockData;
+          
+          // Ensure all questions have answer field initialized and sort by order
+          if (questionnaireData.questions && Array.isArray(questionnaireData.questions)) {
+            questionnaireData.questions = questionnaireData.questions
+              .map(q => ({
+                ...q,
+                answer: q.answer || null,
+              }))
+              .sort((a, b) => (a.order || 0) - (b.order || 0));
+            
+            console.log('[DEBUG] Sorted questions:', questionnaireData.questions.map(q => ({ order: q.order, question: q.question })));
+          }
+          
+          this.questionnaireData = questionnaireData;
           this.isInitialized = true;
-          resolve(true);
-        }, 100);
-      });
+          console.log('[INIT] Questionnaire loaded successfully');
+          console.log('[DEBUG] Total questions:', questionnaireData.questions?.length);
+          return true;
+        } else {
+          console.error('[INIT] Invalid response format. Expected response.data.data');
+          console.error('[DEBUG] Received:', response);
+          return false;
+        }
+      } catch (error) {
+        console.error('[INIT] Failed to fetch questionnaire:', error);
+        return false;
+      }
     },
     setCurrentQuestionIndex(index) {
       this.currentQuestionIndex = index;
@@ -124,9 +95,20 @@ export const useQuestionnaire = defineStore('questionnaire', {
       // Update the questionnaire data with new completion percentage
       this.questionnaireData.completionPercentage = completionPercentage;
       
-      // Mock API call
+      // In preview mode, skip API call and just update store
+      if (this.isPreviewMode) {
+        console.log('[PREVIEW MODE] Answer not sent to API, stored locally only');
+        return Promise.resolve({
+          success: true,
+          completionPercentage,
+        });
+      }
+      
+      // In normal mode, make API call to persist answer
+      // TODO: Replace with actual API call when backend is ready
       return new Promise((resolve) => {
         setTimeout(() => {
+          console.log('[API CALL] Submitting answer to backend:', { questionId, answer });
           // Mock API response
           resolve({
             success: true,

@@ -32,12 +32,14 @@ router.beforeEach(async (to, from, next) => {
 
   // If not initialized, initialize the questionnaire
   if (!questionnaireStore.isInitialized) {
-    // Get questionnaire ID from query params
+    // Get questionnaire ID and mode from query params
     const questionnaireId = to.query.id || null;
+    const mode = to.query.mode || null;
+    const isPreviewMode = mode === 'preview';
 
     try {
-      // Mock API call that returns true
-      const success = await questionnaireStore.initializeQuestionnaire(questionnaireId);
+      // Initialize questionnaire with preview mode flag
+      const success = await questionnaireStore.initializeQuestionnaire(questionnaireId, isPreviewMode);
       
       if (success) {
         next();

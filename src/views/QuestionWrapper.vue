@@ -7,18 +7,21 @@ import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
 
 const router = useRouter();
 const questionnaireStore = useQuestionnaire();
-const { currentQuestion, progressPercentage, currentQuestionIndex, totalQuestions } = storeToRefs(questionnaireStore);
+const { currentQuestion, progressPercentage, currentQuestionIndex, totalQuestions, isPreviewMode } = storeToRefs(questionnaireStore);
 
 const handleNext = async () => {
   console.log('[CTA] Next button clicked');
   
   const answer = currentQuestion.value.answer;
   
-  // Check if answer exists
-  if (!answer || !answer.trim()) {
-    console.log('[VALIDATION] No answer provided');
-    alert('Please provide an answer before proceeding.');
-    return;
+  // In preview mode, skip validation and allow navigation without answers
+  if (!isPreviewMode.value) {
+    // Check if answer exists
+    if (!answer || !answer.trim()) {
+      console.log('[VALIDATION] No answer provided');
+      alert('Please provide an answer before proceeding.');
+      return;
+    }
   }
 
   console.log('[ANSWER]', answer);
@@ -45,7 +48,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="question-wrapper">
+  <div class="question-wrapper" v-if="currentQuestion">
     <ProgressBar />
 
     <div class="content">
@@ -63,7 +66,7 @@ onMounted(() => {
           rows="4"
         ></textarea>
         <input 
-          v-else
+          v-else-if="currentQuestion"
           v-model="currentQuestion.answer"
           type="text"
           placeholder="Type your answer here"
