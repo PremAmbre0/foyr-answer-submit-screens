@@ -1,5 +1,6 @@
 <script setup>
 import { inject } from 'vue';
+import HelloComponent from '@/components/HelloComponent.vue';
 
 const rem = inject('remToPixel');
 
@@ -7,7 +8,7 @@ const rem = inject('remToPixel');
 
 <template>
   <div class="home-page-wrapper">
-    {{ rem }}
+    <HelloComponent />
   </div>
 </template>
 

@@ -1,6 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import HomeWrapper from '../views/HomeWrapper.vue';
-import LoginWrapper from '../views/LoginWrapper.vue';
+import WelcomeWrapper from '../views/WelcomeWrapper.vue';
+import QuestionWrapper from '../views/QuestionWrapper.vue';
+import EndWrapper from '../views/EndWrapper.vue';
+import { useQuestionnaire } from '@/stores/questionnaire.store';
 
 const router = createRouter({
   // history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,15 +10,49 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeWrapper,
+      name: 'welcome',
+      component: WelcomeWrapper,
     },
     {
-      path: '/login',
-      name: 'login',
-      component: LoginWrapper,
+      path: '/question',
+      name: 'question',
+      component: QuestionWrapper,
+    },
+    {
+      path: '/end',
+      name: 'end',
+      component: EndWrapper,
     },
   ],
+});
+
+// Navigation guard to initialize questionnaire
+router.beforeEach(async (to, from, next) => {
+  const questionnaireStore = useQuestionnaire();
+
+  // If not initialized, initialize the questionnaire
+  if (!questionnaireStore.isInitialized) {
+    // Get questionnaire ID from query params
+    const questionnaireId = to.query.id || null;
+
+    try {
+      // Mock API call that returns true
+      const success = await questionnaireStore.initializeQuestionnaire(questionnaireId);
+      
+      if (success) {
+        next();
+      } else {
+        // Handle initialization failure
+        console.error('Failed to initialize questionnaire');
+        next();
+      }
+    } catch (error) {
+      console.error('Error initializing questionnaire:', error);
+      next();
+    }
+  } else {
+    next();
+  }
 });
 
 export default router;
