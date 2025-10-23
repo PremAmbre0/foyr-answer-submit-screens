@@ -1,0 +1,97 @@
+// Button Mixins
+@mixin button-base {
+  padding: 0.875rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: #1e293b;
+  color: #fff;
+  
+  &:hover:not(:disabled) {
+    background: #334155;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+}
+
+// Input Mixins
+@mixin input-base {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  background: #fff;
+  
+  &::placeholder {
+    color: #94a3b8;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #1e293b;
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.1);
+  }
+  
+  &:disabled {
+    background: #f8fafc;
+    cursor: not-allowed;
+  }
+}
+
+@mixin textarea-base {
+  @include input-base;
+  resize: vertical;
+  min-height: 120px;
+}
+
+// Responsive Breakpoints
+@mixin mobile {
+  @media (max-width: 767px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 769px) {
+    @content;
+  }
+}
