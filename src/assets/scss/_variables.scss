@@ -1,12 +1,30 @@
-// Please follow the correct prefix -> color, border, background$unbounded-font: 'Unbounded', sans-serif;
-$unbounded-font: 'Unbounded', sans-serif;
-$worksans-font: 'Work Sans', sans-serif;
+// Please follow the correct prefix -> color, border, background
 
+// Fonts
+$nunito-font: 'Nunito', sans-serif;
+
+// Gray Scale Colors
+$color-gray-900: #111827;
+$color-gray-400: #9CA3AF;
+$color-gray-300: #D1D5DB;
+$color-gray-600: #6B7280;
+
+// Base Colors
 $color-white: #ffffff;
 $color-black: #000000;
 $color-red: #FF0000;
 
-$border-white: #ffff;
+// Primary Colors
+$color-primary: #1e293b;
+$color-primary-hover: #334155;
 
+// Border Colors
+$border-white: #ffff;
+$border-gray-300: #D1D5DB;
+$border-gray-200: #e2e8f0;
+$border-gray-400: #cbd5e1;
+
+// Background Colors
 $background-white: #fff;
 $background-black: #000;
+$background-gray-light: #f8fafc;

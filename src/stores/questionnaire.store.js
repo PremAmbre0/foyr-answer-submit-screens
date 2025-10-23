@@ -38,10 +38,24 @@ export const useQuestionnaire = defineStore('questionnaire', {
           // Ensure all questions have answer field initialized and sort by order
           if (questionnaireData.questions && Array.isArray(questionnaireData.questions)) {
             questionnaireData.questions = questionnaireData.questions
-              .map(q => ({
-                ...q,
-                answer: q.answer || null,
-              }))
+              .map(q => {
+                // If answer exists, ensure it has all properties
+                // If answer doesn't exist, create default structure
+                const answer = q.answer ? {
+                  response: q.answer.response || '',
+                  rating: q.answer.rating || null,
+                  selectedOptions: q.answer.selectedOptions || []
+                } : {
+                  response: '',
+                  rating: null,
+                  selectedOptions: []
+                };
+                
+                return {
+                  ...q,
+                  answer
+                };
+              })
               .sort((a, b) => (a.order || 0) - (b.order || 0));
             
             console.log('[DEBUG] Sorted questions:', questionnaireData.questions.map(q => ({ order: q.order, question: q.question })));
@@ -86,7 +100,7 @@ export const useQuestionnaire = defineStore('questionnaire', {
       // Answer is already updated via v-model binding
       // Just calculate completion percentage based on answered questions
       const answeredQuestions = this.questionnaireData.questions.filter(
-        (q) => q.answer !== null && q.answer !== ''
+        (q) => q.answer?.response && q.answer.response.trim() !== ''
       ).length;
       
       const totalQuestions = this.questionnaireData.questions.length;

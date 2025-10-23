@@ -16,8 +16,8 @@ const handleNext = async () => {
   
   // In preview mode, skip validation and allow navigation without answers
   if (!isPreviewMode.value) {
-    // Check if answer exists
-    if (!answer || !answer.trim()) {
+    // Check if answer.response exists and has content
+    if (!answer?.response || !answer.response.trim()) {
       console.log('[VALIDATION] No answer provided');
       alert('Please provide an answer before proceeding.');
       return;
@@ -84,26 +84,28 @@ onMounted(() => {
       
       <div class="question-block">
         <div class="question-info">
-          <h2>
+          <div class="question-header">
             <span class="question-number">{{ currentQuestionIndex + 1 }}.</span>
-            {{ currentQuestion?.question }}
-          </h2>
-          <p class="description" v-if="currentQuestion?.description">
-            {{ currentQuestion.description }}
-          </p>
+            <div class="question-text">
+              <h2>{{ currentQuestion?.question }}</h2>
+              <p class="description" v-if="currentQuestion?.description">
+                {{ currentQuestion.description }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div class="answer-section">
-          <div class="answer-input">
+        <div class="answer-input">
           <textarea 
             v-if="currentQuestion?.type === 'LONG_TEXT'"
-            v-model="currentQuestion.answer"
+            v-model="currentQuestion.answer.response"
             placeholder="Type your answer here"
             rows="4"
           ></textarea>
           <input 
             v-else-if="currentQuestion"
-            v-model="currentQuestion.answer"
+            v-model="currentQuestion.answer.response"
             type="text"
             placeholder="Type your answer here"
           />
@@ -169,7 +171,6 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-@import '@/assets/scss/mixins.scss';
 
 .question-wrapper {
   height: 100%;
@@ -271,21 +272,25 @@ onMounted(() => {
         input, textarea {
           width: 100%;
           padding: 0.75rem 0;
-          font-size: 1rem;
+          font-size: 14px;
+          font-family: $nunito-font;
+          font-style: normal;
+          font-weight: 400;
+          line-height: normal;
           border: none;
-          border-bottom: 1px solid #cbd5e1;
-          font-family: inherit;
-          color: #1e293b;
+          border-bottom: 1px solid $border-gray-300;
+          color: $color-gray-900;
           transition: border-color 0.2s ease;
           background: transparent;
           
           &::placeholder {
-            color: #cbd5e1;
+            color: $color-gray-300;
+            font-style: italic;
           }
           
           &:focus {
             outline: none;
-            border-bottom-color: #1e293b;
+            border-bottom-color: $color-gray-900;
           }
         }
 
@@ -324,30 +329,53 @@ onMounted(() => {
       @include tablet {
         margin-bottom: 1rem;
       }
-
-      h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.75rem;
-        line-height: 1.4;
-        
-        .question-number {
-          font-weight: 400;
-          color: #64748b;
-          margin-right: 0.5rem;
-        }
+      
+      .question-header {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+      }
+      
+      .question-number {
+        color: $color-gray-900;
+        font-family: $nunito-font;
+        font-size: 24px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: normal;
+        flex-shrink: 0;
         
         @include tablet {
-          font-size: 1.25rem;
+          font-size: 20px;
         }
       }
-
-      .description {
-        font-size: 0.9375rem;
-        color: #64748b;
-        font-style: italic;
-        line-height: 1.5;
+      
+      .question-text {
+        flex: 1;
+        
+        h2 {
+          color: $color-gray-900;
+          font-family: $nunito-font;
+          font-size: 24px;
+          font-style: normal;
+          font-weight: 700;
+          line-height: normal;
+          margin: 0 0 0.5rem 0;
+          
+          @include tablet {
+            font-size: 20px;
+          }
+        }
+        
+        .description {
+          color: $color-gray-400;
+          font-family: $nunito-font;
+          font-size: 16px;
+          font-style: italic;
+          font-weight: 400;
+          line-height: normal;
+          margin: 0;
+        }
       }
     }
 
