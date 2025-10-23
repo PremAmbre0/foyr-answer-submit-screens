@@ -83,7 +83,7 @@ onUnmounted(() => {
       <!-- Title and Description -->
       <div class="title">{{ welcomeScreen.title || 'Welcome to Your Kitchen Vision Questionnaire' }}</div>
       <div class="description">{{ welcomeScreen.description || 'Tell us a bit about your vision for your dream kitchen.'
-        }}</div>
+      }}</div>
 
       <!-- Mode Toggle -->
       <div class="mode-toggle" ref="modeToggle">
