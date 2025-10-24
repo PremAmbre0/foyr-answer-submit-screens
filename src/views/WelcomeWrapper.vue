@@ -1,38 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, inject, nextTick } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuestionnaire } from '@/stores/questionnaire.store';
+import { useUIStates } from '@/stores/uiStates.store';
 import { storeToRefs } from 'pinia';
 import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
-import ConversationMode from '@/components/ConversationMode.vue';
-const appImages = inject('appImages')
+import ModeToggle from '@/components/sharedComponents/ModeToggle.vue';
+
 const router = useRouter();
 const questionnaireStore = useQuestionnaire();
+const uiStatesStore = useUIStates();
 const { questionnaireData } = storeToRefs(questionnaireStore);
+const { selectedMode } = storeToRefs(uiStatesStore);
 
 const welcomeScreen = computed(() => questionnaireData.value?.welcomeScreen || {});
-const selectedMode = ref('text'); // 'text' or 'conversation'
-// Removed unused width variables - we measure dynamically
-const sliderLeft = ref(0);
-const sliderWidth = ref(0);
-const textButton = ref(null);
-const conversationButton = ref(null);
-const modeToggle = ref(null);
-
-const selectMode = (mode) => {
-  // Measure the target button BEFORE changing the mode so the slider animates to it
-  const container = modeToggle.value;
-  const targetEl = mode === 'conversation' ? conversationButton.value : textButton.value;
-  if (container && targetEl) {
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = targetEl.getBoundingClientRect();
-
-    sliderLeft.value = (targetRect.left - containerRect.left);
-    sliderWidth.value = targetRect.width  // Subtract total padding
-  }
-  selectedMode.value = mode;
-  console.log('[MODE] Selected mode:', mode);
-};
 
 const startQuestionnaire = () => {
   if (selectedMode.value === 'conversation') {
@@ -43,30 +24,8 @@ const startQuestionnaire = () => {
   router.push({ name: 'question' });
 };
 
-const measureActiveButton = () => {
-  const container = modeToggle.value;
-  const activeEl = selectedMode.value === 'conversation' ? conversationButton.value : textButton.value;
-  if (!container || !activeEl) return;
-  const containerRect = container.getBoundingClientRect();
-  const activeRect = activeEl.getBoundingClientRect();
-  sliderLeft.value = (activeRect.left - containerRect.left);
-  sliderWidth.value = activeRect.width;
-};
-
 onMounted(() => {
   questionnaireStore.setShowProgressBar(false);
-
-  // Measure button widths for dynamic slider sizing
-  nextTick(() => {
-
-    // Removed unused width measurements - we measure dynamically on click
-    measureActiveButton();
-  });
-  window.addEventListener('resize', measureActiveButton);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', measureActiveButton);
 });
 </script>
 
@@ -83,25 +42,10 @@ onUnmounted(() => {
       <!-- Title and Description -->
       <div class="title">{{ welcomeScreen.title || 'Welcome to Your Kitchen Vision Questionnaire' }}</div>
       <div class="description">{{ welcomeScreen.description || 'Tell us a bit about your vision for your dream kitchen.'
-      }}</div>
+        }}</div>
 
       <!-- Mode Toggle -->
-      <div class="mode-toggle" ref="modeToggle">
-        <div class="slider" :style="{
-          left: (sliderLeft / 16) + 'rem',
-          width: (sliderWidth / 16) + 'rem'
-        }" />
-        <div class="mode-button" :class="{ active: selectedMode === 'text' }" @click="selectMode('text')"
-          ref="textButton">
-          <img class="icon iwpar" :src="appImages['text-block.svg']"></img>
-          Text Mode
-        </div>
-        <div class="mode-button" :class="{ active: selectedMode === 'conversation' }"
-          @click="selectMode('conversation')" ref="conversationButton">
-          <img class="icon iwpar" :src="appImages['voice-square.svg']"></img>
-          Conversation Mode
-        </div>
-      </div>
+      <ModeToggle :showText="true" />
 
       <!-- Conversation Mode WIP or Start Button -->
       <!-- <ConversationMode v-if="selectedMode === 'conversation'" /> -->
@@ -183,67 +127,11 @@ onUnmounted(() => {
       margin-bottom: 2.5rem;
     }
 
-    .mode-toggle {
-      display: flex;
-      position: relative;
-      overflow: hidden;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1.5rem;
-      padding: .375rem .5rem;
-      border-radius: 6.25rem;
-      background: #F9FAFB;
-
-      /* shadow/sm */
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-
-      .slider {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        height: calc(100% - 0.75rem);
-        border-radius: 6.25rem;
-        background: #FFF;
-        transform: translateY(-50%);
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        transition: all 250ms cubic-bezier(.4, 0, .2, 1);
-      }
-
-      .mode-button {
-        display: flex;
-        padding: .375rem .75rem;
-        justify-content: center;
-        align-items: center;
-        gap: .5rem;
-        cursor: pointer;
-        color: #6B7280;
-        text-align: center;
-        font-size: .875rem;
-        font-weight: 500;
-        flex: 1;
-        position: relative;
-        z-index: 1;
-        white-space: nowrap;
-
-
-        .icon {
-          width: 1rem;
-          height: 1rem;
-          flex-shrink: 0;
-        }
-
-        &.active {
-          color: #111827;
-          font-weight: 600;
-        }
-
-
-      }
-    }
 
     .cta-section {
       width: 100%;
       display: flex;
+      margin-top: 1.5rem;
       justify-content: center;
 
       @include tablet {

@@ -32,3 +32,17 @@ export const fetchQuestionnaireById = async (questionnaireId) => {
     return handle401(e);
   });
 };
+
+export const addAnswer = async (questionnaireId, data) => {
+  return postAPIResponse(routes.addAnswer(questionnaireId), data).catch((e) => {
+    console.error('Error adding answer:', e);
+    return handle401(e);
+  });
+};
+
+export const requestEditAccess = async (questionnaireId) => {
+  return postAPIResponse(routes.requestEditAccess(questionnaireId), {}).catch((e) => {
+    console.error('Error requesting edit access:', e);
+    return handle401(e);
+  });
+};

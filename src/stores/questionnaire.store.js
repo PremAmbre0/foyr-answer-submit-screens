@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { fetchQuestionnaireById } from '@/network/project.service';
+import { fetchQuestionnaireById, addAnswer } from '@/network/project.service';
 
 export const useQuestionnaire = defineStore('questionnaire', {
   state: () => ({
@@ -119,17 +119,47 @@ export const useQuestionnaire = defineStore('questionnaire', {
       }
       
       // In normal mode, make API call to persist answer
-      // TODO: Replace with actual API call when backend is ready
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          console.log('[API CALL] Submitting answer to backend:', { questionId, answer });
-          // Mock API response
-          resolve({
-            success: true,
-            completionPercentage,
-          });
-        }, 300);
-      });
+      try {
+        const response = await addAnswer(this.questionnaireData._id, {
+          questionId,
+          answer,
+        });
+        
+        console.log('[API CALL] Answer submitted successfully:', response);
+        
+        return {
+          success: true,
+          completionPercentage,
+          data: response?.data,
+        };
+      } catch (error) {
+        console.error('[API ERROR] Failed to submit answer:', error);
+        throw error;
+      }
+    },
+    async requestEditAccess() {
+      if (!this.questionnaireData?._id) {
+        console.error('[ERROR] No questionnaire ID available');
+        return { success: false, error: 'No questionnaire loaded' };
+      }
+      
+      try {
+        const { requestEditAccess } = await import('@/network/project.service');
+        const response = await requestEditAccess(this.questionnaireData._id);
+        
+        console.log('[API CALL] Edit access requested successfully:', response);
+        
+        return {
+          success: true,
+          data: response?.data,
+        };
+      } catch (error) {
+        console.error('[API ERROR] Failed to request edit access:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to request edit access',
+        };
+      }
     },
   },
   getters: {

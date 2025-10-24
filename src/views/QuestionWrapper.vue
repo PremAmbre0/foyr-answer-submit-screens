@@ -1,9 +1,10 @@
 <script setup>
-import { computed, inject, onMounted } from 'vue';
+import { computed, onMounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuestionnaire } from '@/stores/questionnaire.store';
 import { storeToRefs } from 'pinia';
 import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
+import ModeToggle from '@/components/sharedComponents/ModeToggle.vue';
 
 const router = useRouter();
 const questionnaireStore = useQuestionnaire();
@@ -61,39 +62,37 @@ onMounted(() => {
   <div class="question-wrapper" v-if="currentQuestion">
     <ProgressBar />
 
-    <!-- Mode Toggle Icons - Desktop (Top Right) -->
+    <!-- Mode Toggle Icons - Desktop (Top Left) -->
     <div class="mode-toggle-desktop">
-      <button class="toggle-icon" title="Text Mode">
-        <span>📝</span>
-      </button>
-      <button class="toggle-icon" title="Conversation Mode" disabled>
-        <span>💬</span>
-      </button>
+      <ModeToggle :showText="false" />
     </div>
 
     <div class="content">
       <!-- Mode Toggle Icons - Mobile (Top Middle) -->
       <div class="mode-toggle-mobile">
-        <button class="toggle-icon" title="Text Mode">
-          <span>📝</span>
-        </button>
-        <button class="toggle-icon" title="Conversation Mode" disabled>
-          <span>💬</span>
-        </button>
+        <ModeToggle :showText="false" />
       </div>
 
       <div class="question-block">
         <div class="question-info">
-          <div class="question-header">
-            <span class="question-number">{{ currentQuestionIndex + 1 }}.</span>
-            <div class="question-text">
-              <h2>{{ currentQuestion?.question }}</h2>
-              <p class="description" v-if="currentQuestion?.description">
-                {{ currentQuestion.description }}
-              </p>
-            </div>
+          <div class="question-number">{{ currentQuestionIndex + 1 }}.</div>
+          <div class="question-text">
+            <h2>{{ currentQuestion?.question }}</h2>
+          </div>
+          <div class="empty-space"></div>
+          <div class="description" v-if="currentQuestion?.description">
+            {{ currentQuestion.description }}
           </div>
         </div>
+        <div class="dynamic-image-grid">
+          <img src="https://picsum.photos/200/300" alt="Image 1">
+          <img src="https://picsum.photos/200/300" alt="Image 2">
+          <img src="https://picsum.photos/200/300" alt="Image 3">
+          <img src="https://picsum.photos/200/300" alt="Image 4">
+          <img src="https://picsum.photos/200/300" alt="Image 5">
+        </div>
+
+
 
         <div class="answer-section">
           <div class="answer-input">
@@ -169,33 +168,6 @@ onMounted(() => {
     }
   }
 
-  .toggle-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    span {
-      font-size: 1.25rem;
-    }
-
-    &:hover:not(:disabled) {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-
   .content {
     flex: 1;
     padding: 3rem 2rem;
@@ -241,11 +213,9 @@ onMounted(() => {
         textarea {
           width: 100%;
           padding: 0.75rem 0;
-          font-size: 14px;
-          font-family: $nunito-font;
-          font-style: normal;
+          font-size: 0.875rem;
+
           font-weight: 400;
-          line-height: normal;
           border: none;
           border-bottom: 1px solid $border-gray-300;
           color: $color-gray-900;
@@ -265,7 +235,7 @@ onMounted(() => {
 
         textarea {
           resize: vertical;
-          min-height: 100px;
+          min-height: 6.25rem;
         }
       }
 
@@ -293,58 +263,76 @@ onMounted(() => {
     }
 
     .question-info {
+      display: grid;
+      grid-template-columns: 0.875rem 1fr;
+      grid-template-rows: auto auto;
+      gap: 0.5rem 0.5rem;
       margin-bottom: 2rem;
 
       @include tablet {
         margin-bottom: 1rem;
       }
 
-      .question-header {
-        display: flex;
-        gap: 0.5rem;
-        align-items: flex-start;
-      }
-
       .question-number {
+        grid-column: 1;
+        grid-row: 1;
         color: $color-gray-900;
-        font-family: $nunito-font;
-        font-size: 24px;
-        font-style: normal;
+        font-size: 1rem;
         font-weight: 700;
-        line-height: normal;
-        flex-shrink: 0;
+        display: flex;
+        align-items: end;
 
         @include tablet {
-          font-size: 20px;
+          font-size: 1.25rem;
         }
       }
 
       .question-text {
-        flex: 1;
+        grid-column: 2;
+        grid-row: 1;
 
         h2 {
           color: $color-gray-900;
-          font-family: $nunito-font;
-          font-size: 24px;
-          font-style: normal;
+          font-size: 1.5rem;
           font-weight: 700;
-          line-height: normal;
-          margin: 0 0 0.5rem 0;
+          margin: 0;
 
           @include tablet {
-            font-size: 20px;
+            font-size: 1.25rem;
           }
         }
+      }
 
-        .description {
-          color: $color-gray-400;
-          font-family: $nunito-font;
-          font-size: 16px;
-          font-style: italic;
-          font-weight: 400;
-          line-height: normal;
-          margin: 0;
-        }
+      .empty-space {
+        grid-column: 1;
+        grid-row: 2;
+        height: 1rem;
+      }
+
+      .description {
+        grid-column: 2;
+        grid-row: 2;
+        color: $color-gray-400;
+        font-size: 1rem;
+        font-style: italic;
+        font-weight: 400;
+        margin: 0;
+      }
+    }
+
+    .dynamic-image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(5.9375rem, 8.75rem));
+      gap: .25rem .5rem;
+
+      & img {
+        border-radius: .5rem;
+        width: 100%;
+        min-height: .5rem;
+        max-height: 7.5rem;
+        object-fit: cover;
+        display: block;
+        cursor: pointer;
       }
     }
 
@@ -360,7 +348,7 @@ onMounted(() => {
 
       .back-btn {
         @include button-secondary;
-        padding: 0.75rem 1.5rem;
+        border: none;
 
         @include tablet {
           width: 100%;
@@ -387,10 +375,12 @@ onMounted(() => {
         width: 2rem;
         height: 2rem;
         justify-content: center;
+        padding: .5rem;
         align-items: center;
         gap: .25rem;
-        border-radius: 18px;
+        border-radius: 1.125rem;
         background: #F9FAFB;
+        cursor: pointer;
 
         &:hover {
           background: #f8fafc;
@@ -403,8 +393,8 @@ onMounted(() => {
         }
 
         svg {
-          width: 20px;
-          height: 20px;
+          width: 1.25rem;
+          height: 1.25rem;
         }
       }
     }
