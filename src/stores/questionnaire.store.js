@@ -44,11 +44,13 @@ export const useQuestionnaire = defineStore('questionnaire', {
                 const answer = q.answer ? {
                   response: q.answer.response || '',
                   rating: q.answer.rating || null,
-                  selectedOptions: q.answer.selectedOptions || []
+                  selectedOptions: q.answer.selectedOptions || [],
+                  referenceImagesByCustomer: q.answer.referenceImagesByCustomer || []
                 } : {
                   response: '',
                   rating: null,
-                  selectedOptions: []
+                  selectedOptions: [],
+                  referenceImagesByCustomer: []
                 };
                 
                 return {

@@ -1,15 +1,25 @@
 <script setup>
-import { computed, onMounted, inject } from 'vue';
+import { computed, onMounted, inject, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuestionnaire } from '@/stores/questionnaire.store';
 import { storeToRefs } from 'pinia';
 import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
 import ModeToggle from '@/components/sharedComponents/ModeToggle.vue';
+import { uploadToS3 } from '@/network/project.service';
 
 const router = useRouter();
 const questionnaireStore = useQuestionnaire();
 const { currentQuestion, progressPercentage, currentQuestionIndex, totalQuestions, isPreviewMode } = storeToRefs(questionnaireStore);
-const appImages = inject("appImages")
+const appImages = inject("appImages");
+
+const isUploading = ref(false);
+const uploadingImages = ref([]);
+const fileInputRef = ref(null);
+const MAX_IMAGES = 10; // Maximum images allowed per question
+const isLastQuestion = computed(() => {
+  return currentQuestionIndex.value === totalQuestions.value - 1;
+});
+
 const handleNext = async () => {
   console.log('[CTA] Next button clicked');
 
@@ -21,6 +31,16 @@ const handleNext = async () => {
     if (!answer?.response || !answer.response.trim()) {
       console.log('[VALIDATION] No answer provided');
       alert('Please provide an answer before proceeding.');
+      return;
+    }
+  }
+
+  // If last question, show submit confirmation
+  if (isLastQuestion.value && !isPreviewMode.value) {
+    const confirmed = confirm(
+      'Once submitted, you won\'t be able to edit your answers until you request edit access again. Do you want to submit?'
+    );
+    if (!confirmed) {
       return;
     }
   }
@@ -45,7 +65,81 @@ const handlePrevious = () => {
 
 const handleImageUpload = () => {
   console.log('[ACTION] Image upload clicked');
-  // TODO: Implement image upload
+  fileInputRef.value?.click();
+};
+
+const handleFileSelect = async (event) => {
+  const files = Array.from(event.target.files || []);
+  
+  // Clear file input immediately to allow re-selection of same files
+  if (fileInputRef.value) {
+    fileInputRef.value.value = '';
+  }
+  
+  if (files.length === 0) return;
+
+  // Check current image count
+  const currentImageCount = (currentQuestion.value.answer.referenceImagesByCustomer?.length || 0) + uploadingImages.value.length;
+  const availableSlots = MAX_IMAGES - currentImageCount;
+  
+  if (availableSlots <= 0) {
+    alert(`Maximum ${MAX_IMAGES} images allowed per question.`);
+    return;
+  }
+  
+  // Limit files to available slots
+  const filesToUpload = files.slice(0, availableSlots);
+  
+  if (filesToUpload.length < files.length) {
+    alert(`Only ${filesToUpload.length} of ${files.length} images will be uploaded (max ${MAX_IMAGES} images per question).`);
+  }
+
+  console.log('[UPLOAD] Selected files:', filesToUpload.length);
+  
+  isUploading.value = true;
+
+  // Create upload placeholders for all files
+  const uploadTasks = filesToUpload.map(file => {
+    const uploadId = Date.now() + Math.random();
+    uploadingImages.value.push({ id: uploadId, file });
+    return { uploadId, file };
+  });
+
+  // Upload all files in parallel
+  const uploadPromises = uploadTasks.map(async ({ uploadId, file }) => {
+    try {
+      // Upload to S3
+      const response = await uploadToS3(file);
+      const imageUrl = response?.data?.data?.url || response?.data?.url;
+
+      if (imageUrl) {
+        // Add uploaded URL to answer
+        if (!currentQuestion.value.answer.referenceImagesByCustomer) {
+          currentQuestion.value.answer.referenceImagesByCustomer = [];
+        }
+        currentQuestion.value.answer.referenceImagesByCustomer.push(imageUrl);
+        console.log('[UPLOAD] Image uploaded successfully:', imageUrl);
+      }
+    } catch (error) {
+      console.error('[UPLOAD ERROR]', error);
+      alert(`Failed to upload ${file.name}`);
+    } finally {
+      // Remove from uploading list when this specific upload completes
+      uploadingImages.value = uploadingImages.value.filter(img => img.id !== uploadId);
+    }
+  });
+
+  // Wait for all uploads to complete
+  await Promise.all(uploadPromises);
+
+  isUploading.value = false;
+};
+
+const handleRemoveImage = (index) => {
+  console.log('[ACTION] Remove image at index:', index);
+  if (currentQuestion.value.answer.referenceImagesByCustomer) {
+    currentQuestion.value.answer.referenceImagesByCustomer.splice(index, 1);
+  }
 };
 
 const handleVoiceInput = () => {
@@ -84,12 +178,24 @@ onMounted(() => {
             {{ currentQuestion.description }}
           </div>
         </div>
-        <div class="dynamic-image-grid">
-          <img src="https://picsum.photos/200/300" alt="Image 1">
-          <img src="https://picsum.photos/200/300" alt="Image 2">
-          <img src="https://picsum.photos/200/300" alt="Image 3">
-          <img src="https://picsum.photos/200/300" alt="Image 4">
-          <img src="https://picsum.photos/200/300" alt="Image 5">
+        <!-- Image Grid -->
+        <div class="dynamic-image-grid" v-if="currentQuestion.answer.referenceImagesByCustomer?.length > 0 || uploadingImages.length > 0">
+          <!-- Uploaded Images -->
+          <div v-for="(imageUrl, index) in currentQuestion.answer.referenceImagesByCustomer" :key="imageUrl" class="image-container">
+            <img :src="imageUrl" :alt="`Uploaded image ${index + 1}`">
+            <div class="remove-btn" @click="handleRemoveImage(index)" title="Remove image">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Uploading Images (Loading State) -->
+          <div v-for="upload in uploadingImages" :key="upload.id" class="image-container loading">
+            <div class="loading-placeholder">
+              <div class="spinner"></div>
+            </div>
+          </div>
         </div>
 
 
@@ -117,11 +223,12 @@ onMounted(() => {
       <!-- Desktop & Mobile: Navigation -->
       <div class="bottom-section">
         <div class="navigation">
-          <button v-if="currentQuestionIndex > 0" @click="handlePrevious" class="back-btn">
+          <button v-if="currentQuestionIndex > 0" @click="handlePrevious" class="back-btn" :disabled="isUploading">
             Back
           </button>
-          <button @click="handleNext" class="next-btn">
-            {{ currentQuestionIndex < totalQuestions - 1 ? 'Next' : 'Finish' }} </button>
+          <button @click="handleNext" class="next-btn" :disabled="isUploading">
+            {{ isLastQuestion ? 'Submit' : 'Next' }}
+          </button>
         </div>
 
         <!-- Desktop: Action icons on right -->
@@ -135,6 +242,16 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Hidden File Input -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/*"
+      multiple
+      style="display: none;"
+      @change="handleFileSelect"
+    />
   </div>
 </template>
 
@@ -324,15 +441,80 @@ onMounted(() => {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(5.9375rem, 8.75rem));
       gap: .25rem .5rem;
+      margin-bottom: 1.5rem;
 
-      & img {
+      .image-container {
+        position: relative;
         border-radius: .5rem;
-        width: 100%;
-        min-height: .5rem;
+        overflow: hidden;
+        min-height: 5.9375rem;
         max-height: 7.5rem;
-        object-fit: cover;
-        display: block;
-        cursor: pointer;
+        background: #f3f4f6;
+
+        &:hover .remove-btn {
+          opacity: 1;
+        }
+
+        img {
+          border-radius: .5rem;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .remove-btn {
+          position: absolute;
+          top: 0.25rem;
+          right: 0.25rem;
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(0, 0, 0, 0.6);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s ease, background 0.2s ease;
+          color: white;
+
+          &:hover {
+            background: rgba(0, 0, 0, 0.8);
+          }
+
+          svg {
+            width: 0.75rem;
+            height: 0.75rem;
+          }
+        }
+
+        &.loading {
+          .loading-placeholder {
+            width: 100%;
+            height: 100%;
+            min-height: 5.9375rem;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            .spinner {
+              width: 1.5rem;
+              height: 1.5rem;
+              border: 2px solid #f3f4f6;
+              border-top-color: #6b7280;
+              border-radius: 50%;
+              animation: spin 0.8s linear infinite;
+            }
+          }
+        }
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
       }
     }
 
@@ -353,6 +535,11 @@ onMounted(() => {
         @include tablet {
           width: 100%;
         }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
       }
 
       .next-btn {
@@ -361,6 +548,11 @@ onMounted(() => {
 
         @include tablet {
           width: 100%;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       }
     }

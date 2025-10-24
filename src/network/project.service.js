@@ -46,3 +46,39 @@ export const requestEditAccess = async (questionnaireId) => {
     return handle401(e);
   });
 };
+
+export const uploadToS3 = async (file) => {
+  // Mock S3 upload - returns lorem picsum URL after random 1-3 seconds
+  return new Promise((resolve) => {
+    const randomDelay = Math.floor(Math.random() * 2000) + 1000; // 1000-3000ms
+    
+    setTimeout(() => {
+      const randomId = Math.floor(Math.random() * 1000);
+      const mockUrl = `https://picsum.photos/400/300?random=${randomId}`;
+      
+      console.log('[MOCK S3] File uploaded:', file.name, '-> URL:', mockUrl, `(${randomDelay}ms)`);
+      
+      resolve({
+        data: {
+          success: true,
+          data: {
+            url: mockUrl,
+          },
+        },
+      });
+    }, randomDelay);
+  });
+  
+  // Real implementation (commented out for now)
+  // const formData = new FormData();
+  // formData.append('file', file);
+  // 
+  // return postAPIResponse(routes.uploadToS3, formData, {
+  //   headers: {
+  //     'Content-Type': 'multipart/form-data',
+  //   },
+  // }).catch((e) => {
+  //   console.error('Error uploading to S3:', e);
+  //   throw e;
+  // });
+};
