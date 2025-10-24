@@ -5,6 +5,7 @@ import { useQuestionnaire } from '@/stores/questionnaire.store';
 import { storeToRefs } from 'pinia';
 import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
 import ModeToggle from '@/components/sharedComponents/ModeToggle.vue';
+import ConfirmDialog from '@/components/sharedComponents/ConfirmDialog.vue';
 import { uploadToS3 } from '@/network/project.service';
 
 const router = useRouter();
@@ -18,6 +19,7 @@ const fileInputRef = ref(null);
 const MAX_IMAGES = 10; // Maximum images allowed per question
 const validationError = ref('');
 const isSubmitting = ref(false);
+const showConfirmDialog = ref(false);
 const isLastQuestion = computed(() => {
   return currentQuestionIndex.value === totalQuestions.value - 1;
 });
@@ -42,12 +44,8 @@ const handleNext = async () => {
 
   // If last question, show submit confirmation
   if (isLastQuestion.value && !isPreviewMode.value) {
-    const confirmed = confirm(
-      'Once submitted, you won\'t be able to edit your answers until you request edit access again. Do you want to submit?'
-    );
-    if (!confirmed) {
-      return;
-    }
+    showConfirmDialog.value = true;
+    return;
   }
 
   console.log('[ANSWER]', answer);
@@ -73,6 +71,34 @@ const handleNext = async () => {
 
 const clearValidationError = () => {
   validationError.value = '';
+};
+
+const handleConfirmSubmit = async () => {
+  const answer = currentQuestion.value.answer;
+  
+  console.log('[ANSWER]', answer);
+
+  // Submit answer with loading state
+  isSubmitting.value = true;
+  try {
+    await questionnaireStore.submitAnswer(currentQuestion.value._id, answer);
+    console.log('[PROGRESS]', progressPercentage.value + '%');
+
+    const hasMore = questionnaireStore.nextQuestion();
+    if (!hasMore) {
+      console.log('[CTA] Moving to end screen');
+      router.push({ name: 'end' });
+    }
+  } catch (error) {
+    console.error('[ERROR] Failed to submit answer:', error);
+    // Don't navigate if submission failed
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const handleCancelSubmit = () => {
+  console.log('[ACTION] Submit cancelled');
 };
 
 const handlePrevious = () => {
@@ -278,6 +304,20 @@ onMounted(() => {
 
     <!-- Hidden File Input -->
     <input ref="fileInputRef" type="file" accept="image/*" multiple style="display: none;" @change="handleFileSelect" />
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      :show="showConfirmDialog"
+      title="Submit Questionnaire"
+      message="Once submitted, you won't be able to edit your answers until you request edit access again. Do you want to proceed?"
+      icon="warning"
+      confirm-text="Proceed"
+      cancel-text="Cancel"
+      confirm-variant="primary"
+      @confirm="handleConfirmSubmit"
+      @cancel="handleCancelSubmit"
+      @close="showConfirmDialog = false"
+    />
   </div>
 </template>
 

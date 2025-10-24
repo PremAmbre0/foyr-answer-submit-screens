@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useQuestionnaire } from '@/stores/questionnaire.store';
 import { storeToRefs } from 'pinia';
 import ProgressBar from '@/components/sharedComponents/ProgressBar.vue';
+import ConfirmDialog from '@/components/sharedComponents/ConfirmDialog.vue';
 
 const questionnaireStore = useQuestionnaire();
 const { questionnaireData } = storeToRefs(questionnaireStore);
@@ -10,20 +11,27 @@ const { questionnaireData } = storeToRefs(questionnaireStore);
 const endScreen = computed(() => questionnaireData.value?.endScreen || {});
 const isLocked = computed(() => questionnaireData.value?.isLocked || false);
 
-const handleRequestEdit = async () => {
+const showRequestEditDialog = ref(false);
+const showSuccessDialog = ref(false);
+const showErrorDialog = ref(false);
+
+const handleRequestEditClick = () => {
   console.log('[ACTION] Request Edit Access clicked');
-  
+  showRequestEditDialog.value = true;
+};
+
+const handleConfirmRequestEdit = async () => {
   try {
     const result = await questionnaireStore.requestEditAccess();
     
     if (result.success) {
-      alert('Edit access request submitted successfully! You will be notified when access is granted.');
+      showSuccessDialog.value = true;
     } else {
-      alert('Failed to request edit access. Please try again.');
+      showErrorDialog.value = true;
     }
   } catch (error) {
     console.error('[ERROR] Request edit access failed:', error);
-    alert('Failed to request edit access. Please try again.');
+    showErrorDialog.value = true;
   }
 };
 
@@ -55,9 +63,48 @@ onMounted(() => {
       </div>
 
       <div class="action-buttons">
-        <button class="secondary-btn" @click="handleRequestEdit">Request Edit Access</button>
+        <button class="secondary-btn" @click="handleRequestEditClick">Request Edit Access</button>
         <button class="primary-btn" @click="handleDownload">Download Questionnaire</button>
       </div>
+
+      <!-- Confirm Dialog for Request Edit -->
+      <ConfirmDialog
+        :show="showRequestEditDialog"
+        title="Request Edit Access"
+        message="Are you sure you want to request edit access? The admin will be notified and you'll receive access once approved."
+        icon="info"
+        confirm-text="Request"
+        cancel-text="Cancel"
+        confirm-variant="primary"
+        @confirm="handleConfirmRequestEdit"
+        @close="showRequestEditDialog = false"
+      />
+
+      <!-- Success Dialog -->
+      <ConfirmDialog
+        :show="showSuccessDialog"
+        title="Request Submitted"
+        message="Edit access request submitted successfully! You will be notified when access is granted."
+        icon="info"
+        confirm-text="OK"
+        :cancel-text="null"
+        confirm-variant="primary"
+        @confirm="showSuccessDialog = false"
+        @close="showSuccessDialog = false"
+      />
+
+      <!-- Error Dialog -->
+      <ConfirmDialog
+        :show="showErrorDialog"
+        title="Request Failed"
+        message="Failed to request edit access. Please try again later."
+        icon="danger"
+        confirm-text="OK"
+        :cancel-text="null"
+        confirm-variant="danger"
+        @confirm="showErrorDialog = false"
+        @close="showErrorDialog = false"
+      />
     </div>
   </div>
 </template>
