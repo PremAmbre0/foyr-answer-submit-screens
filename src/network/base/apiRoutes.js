@@ -2,7 +2,8 @@ export const routes = {
   getLoginURL: 'login/url',
   login: 'login',
   getQuestionnaireById: (id) => `questionnaire/${id}`,
-  addAnswer: (questionnaireId) => `questionnaire/${questionnaireId}/answer`,
-  requestEditAccess: (questionnaireId) => `questionnaire/${questionnaireId}/request-edit`,
+  addAnswer: 'answers/add',
+  lockQuestionnaire: (questionnaireId) => `questionnaire/${questionnaireId}/lock`,
+  requestUnlock: (questionnaireId) => `answers/request-unlock/${questionnaireId}`,
   uploadToS3: 'upload/s3',
 };

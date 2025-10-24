@@ -8,10 +8,23 @@ const questionnaireStore = useQuestionnaire();
 const { questionnaireData } = storeToRefs(questionnaireStore);
 
 const endScreen = computed(() => questionnaireData.value?.endScreen || {});
+const isLocked = computed(() => questionnaireData.value?.isLocked || false);
 
-const handleRequestEdit = () => {
+const handleRequestEdit = async () => {
   console.log('[ACTION] Request Edit Access clicked');
-  // TODO: Implement edit access request
+  
+  try {
+    const result = await questionnaireStore.requestEditAccess();
+    
+    if (result.success) {
+      alert('Edit access request submitted successfully! You will be notified when access is granted.');
+    } else {
+      alert('Failed to request edit access. Please try again.');
+    }
+  } catch (error) {
+    console.error('[ERROR] Request edit access failed:', error);
+    alert('Failed to request edit access. Please try again.');
+  }
 };
 
 const handleDownload = () => {
@@ -32,6 +45,13 @@ onMounted(() => {
       <div class="message-section">
         <h1>{{ endScreen.title || 'Thank You!' }}</h1>
         <p>{{ endScreen.bodyText || 'We will review your responses and get back to you soon.' }}</p>
+        <div v-if="isLocked" class="locked-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Questionnaire Locked
+        </div>
       </div>
 
       <div class="action-buttons">
@@ -102,6 +122,24 @@ onMounted(() => {
 
         @include tablet {
           font-size: 1rem;
+        }
+      }
+
+      .locked-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding: 0.5rem 1rem;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+
+        svg {
+          width: 1rem;
+          height: 1rem;
         }
       }
     }

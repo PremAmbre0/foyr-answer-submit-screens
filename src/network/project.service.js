@@ -3,6 +3,7 @@ import {
   // deleteAPIResponse,
   getAPIResponse,
   postAPIResponse,
+  patchAPIResponse,
   // putAPIResponse,
 } from './base/api';
 // import queryString from 'query-string';
@@ -33,10 +34,24 @@ export const fetchQuestionnaireById = async (questionnaireId) => {
   });
 };
 
-export const addAnswer = async (questionnaireId, data) => {
-  return postAPIResponse(routes.addAnswer(questionnaireId), data).catch((e) => {
+export const addAnswer = async (data) => {
+  return postAPIResponse(routes.addAnswer, data).catch((e) => {
     console.error('Error adding answer:', e);
-    return handle401(e);
+    throw e;
+  });
+};
+
+export const lockQuestionnaire = async (questionnaireId) => {
+  return patchAPIResponse(routes.lockQuestionnaire(questionnaireId), {}).catch((e) => {
+    console.error('Error locking questionnaire:', e);
+    throw e;
+  });
+};
+
+export const requestUnlock = async (questionnaireId) => {
+  return postAPIResponse(routes.requestUnlock(questionnaireId), {}).catch((e) => {
+    console.error('Error requesting unlock:', e);
+    throw e;
   });
 };
 

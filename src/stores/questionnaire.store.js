@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { fetchQuestionnaireById, addAnswer } from '@/network/project.service';
+import { fetchQuestionnaireById, addAnswer, lockQuestionnaire, requestUnlock } from '@/network/project.service';
 
 export const useQuestionnaire = defineStore('questionnaire', {
   state: () => ({
@@ -13,28 +13,29 @@ export const useQuestionnaire = defineStore('questionnaire', {
     async initializeQuestionnaire(questionnaireId, isPreviewMode = false) {
       // Set preview mode flag
       this.isPreviewMode = isPreviewMode;
-      
+
       console.log(`[INIT] Questionnaire ID: ${questionnaireId}, Preview Mode: ${isPreviewMode}`);
-      
+
       // Fallback to default ID if none provided
-      const id = questionnaireId || '68f88d45c1eb11c1c26560cf';
-      
+      const id = questionnaireId || '68fb5ef6041c7774ba03e3c6'; //demo
+      // const id = questionnaireId || '68f77abbd2dceb8327c04199'; //play around
+
       try {
         // Fetch real questionnaire data from API
         const response = await fetchQuestionnaireById(id);
-        
+
         console.log('[DEBUG] API Response:', response);
-        
+
         // API returns { data: { success, message, data: {...} } }
         const apiData = response?.data?.data;
-        
+
         if (apiData) {
           // Initialize completionPercentage if not present
           const questionnaireData = {
             ...apiData,
             completionPercentage: apiData.completionPercentage || 0,
           };
-          
+
           // Ensure all questions have answer field initialized and sort by order
           if (questionnaireData.questions && Array.isArray(questionnaireData.questions)) {
             questionnaireData.questions = questionnaireData.questions
@@ -52,17 +53,17 @@ export const useQuestionnaire = defineStore('questionnaire', {
                   selectedOptions: [],
                   referenceImagesByCustomer: []
                 };
-                
+
                 return {
                   ...q,
                   answer
                 };
               })
               .sort((a, b) => (a.order || 0) - (b.order || 0));
-            
+
             console.log('[DEBUG] Sorted questions:', questionnaireData.questions.map(q => ({ order: q.order, question: q.question })));
           }
-          
+
           this.questionnaireData = questionnaireData;
           this.isInitialized = true;
           console.log('[INIT] Questionnaire loaded successfully');
@@ -104,13 +105,13 @@ export const useQuestionnaire = defineStore('questionnaire', {
       const answeredQuestions = this.questionnaireData.questions.filter(
         (q) => q.answer?.response && q.answer.response.trim() !== ''
       ).length;
-      
+
       const totalQuestions = this.questionnaireData.questions.length;
       const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
-      
+
       // Update the questionnaire data with new completion percentage
       this.questionnaireData.completionPercentage = completionPercentage;
-      
+
       // In preview mode, skip API call and just update store
       if (this.isPreviewMode) {
         console.log('[PREVIEW MODE] Answer not sent to API, stored locally only');
@@ -119,16 +120,54 @@ export const useQuestionnaire = defineStore('questionnaire', {
           completionPercentage,
         });
       }
-      
+
       // In normal mode, make API call to persist answer
       try {
-        const response = await addAnswer(this.questionnaireData._id, {
+        // Check if question was already answered (need override)
+        const question = this.questionnaireData.questions.find(q => q._id === questionId);
+        const wasAnswered = question?.answer?.response && question.answer.response.trim() !== '';
+
+        // Prepare clean answer object (only response and referenceImagesByCustomer)
+        const cleanAnswer = {
+          response: answer.response || '',
+          referenceImagesByCustomer: answer.referenceImagesByCustomer || [],
+        };
+
+        const payload = {
+          questionnaireId: this.questionnaireData._id,
           questionId,
-          answer,
-        });
-        
+          answer: cleanAnswer,
+        };
+
+        // Add canOverride if answer already exists
+        if (wasAnswered) {
+          payload.canOverride = true;
+        }
+
+        console.log('[API CALL] Submitting answer:', payload);
+
+        const response = await addAnswer(payload);
+
         console.log('[API CALL] Answer submitted successfully:', response);
-        
+
+        // Check if this is the last question
+        const isLastQuestion = this.currentQuestionIndex === this.questionnaireData.questions.length - 1;
+
+        // If last question, lock the questionnaire
+        if (isLastQuestion) {
+          try {
+            console.log('[API CALL] Locking questionnaire...');
+            await lockQuestionnaire(this.questionnaireData._id);
+            console.log('[API CALL] Questionnaire locked successfully');
+
+            // Update local state to reflect locked status
+            this.questionnaireData.isLocked = true;
+          } catch (lockError) {
+            console.error('[API ERROR] Failed to lock questionnaire:', lockError);
+            // Don't throw - answer was saved, just log the lock error
+          }
+        }
+
         return {
           success: true,
           completionPercentage,
@@ -144,22 +183,21 @@ export const useQuestionnaire = defineStore('questionnaire', {
         console.error('[ERROR] No questionnaire ID available');
         return { success: false, error: 'No questionnaire loaded' };
       }
-      
+
       try {
-        const { requestEditAccess } = await import('@/network/project.service');
-        const response = await requestEditAccess(this.questionnaireData._id);
-        
-        console.log('[API CALL] Edit access requested successfully:', response);
-        
+        const response = await requestUnlock(this.questionnaireData._id);
+
+        console.log('[API CALL] Unlock requested successfully:', response);
+
         return {
           success: true,
           data: response?.data,
         };
       } catch (error) {
-        console.error('[API ERROR] Failed to request edit access:', error);
+        console.error('[API ERROR] Failed to request unlock:', error);
         return {
           success: false,
-          error: error.message || 'Failed to request edit access',
+          error: error.message || 'Failed to request unlock',
         };
       }
     },

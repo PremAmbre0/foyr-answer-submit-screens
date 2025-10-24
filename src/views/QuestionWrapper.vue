@@ -17,6 +17,7 @@ const uploadingImages = ref([]);
 const fileInputRef = ref(null);
 const MAX_IMAGES = 10; // Maximum images allowed per question
 const validationError = ref('');
+const isSubmitting = ref(false);
 const isLastQuestion = computed(() => {
   return currentQuestionIndex.value === totalQuestions.value - 1;
 });
@@ -51,14 +52,22 @@ const handleNext = async () => {
 
   console.log('[ANSWER]', answer);
 
-  // Submit answer
-  await questionnaireStore.submitAnswer(currentQuestion.value._id, answer);
-  console.log('[PROGRESS]', progressPercentage.value + '%');
+  // Submit answer with loading state
+  isSubmitting.value = true;
+  try {
+    await questionnaireStore.submitAnswer(currentQuestion.value._id, answer);
+    console.log('[PROGRESS]', progressPercentage.value + '%');
 
-  const hasMore = questionnaireStore.nextQuestion();
-  if (!hasMore) {
-    console.log('[CTA] Moving to end screen');
-    router.push({ name: 'end' });
+    const hasMore = questionnaireStore.nextQuestion();
+    if (!hasMore) {
+      console.log('[CTA] Moving to end screen');
+      router.push({ name: 'end' });
+    }
+  } catch (error) {
+    console.error('[ERROR] Failed to submit answer:', error);
+    // Don't navigate if submission failed
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
@@ -78,32 +87,32 @@ const handleImageUpload = () => {
 
 const handleFileSelect = async (event) => {
   const files = Array.from(event.target.files || []);
-  
+
   // Clear file input immediately to allow re-selection of same files
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
-  
+
   if (files.length === 0) return;
 
   // Check current image count
-  const currentImageCount = (currentQuestion.value.answer.referenceImagesByCustomer?.length || 0) + uploadingImages.value.length;
+  const currentImageCount = (currentQuestion.value?.answer?.referenceImagesByCustomer?.length || 0) + uploadingImages.value.length;
   const availableSlots = MAX_IMAGES - currentImageCount;
-  
+
   if (availableSlots <= 0) {
     alert(`Maximum ${MAX_IMAGES} images allowed per question.`);
     return;
   }
-  
+
   // Limit files to available slots
   const filesToUpload = files.slice(0, availableSlots);
-  
+
   if (filesToUpload.length < files.length) {
     alert(`Only ${filesToUpload.length} of ${files.length} images will be uploaded (max ${MAX_IMAGES} images per question).`);
   }
 
   console.log('[UPLOAD] Selected files:', filesToUpload.length);
-  
+
   isUploading.value = true;
 
   // Create upload placeholders for all files
@@ -122,6 +131,14 @@ const handleFileSelect = async (event) => {
 
       if (imageUrl) {
         // Add uploaded URL to answer
+        if (!currentQuestion.value?.answer) {
+          currentQuestion.value.answer = {
+            response: '',
+            rating: null,
+            selectedOptions: [],
+            referenceImagesByCustomer: []
+          };
+        }
         if (!currentQuestion.value.answer.referenceImagesByCustomer) {
           currentQuestion.value.answer.referenceImagesByCustomer = [];
         }
@@ -145,7 +162,7 @@ const handleFileSelect = async (event) => {
 
 const handleRemoveImage = (index) => {
   console.log('[ACTION] Remove image at index:', index);
-  if (currentQuestion.value.answer.referenceImagesByCustomer) {
+  if (currentQuestion.value?.answer?.referenceImagesByCustomer) {
     currentQuestion.value.answer.referenceImagesByCustomer.splice(index, 1);
   }
 };
@@ -187,17 +204,20 @@ onMounted(() => {
           </div>
         </div>
         <!-- Image Grid -->
-        <div class="dynamic-image-grid" v-if="currentQuestion.answer.referenceImagesByCustomer?.length > 0 || uploadingImages.length > 0">
+        <div class="dynamic-image-grid"
+          v-if="currentQuestion?.answer?.referenceImagesByCustomer?.length > 0 || uploadingImages.length > 0">
           <!-- Uploaded Images -->
-          <div v-for="(imageUrl, index) in currentQuestion.answer.referenceImagesByCustomer" :key="imageUrl" class="image-container">
+          <div v-for="(imageUrl, index) in currentQuestion?.answer?.referenceImagesByCustomer" :key="imageUrl"
+            class="image-container">
             <img :src="imageUrl" :alt="`Uploaded image ${index + 1}`">
             <div class="remove-btn" @click="handleRemoveImage(index)" title="Remove image">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
           </div>
-          
+
           <!-- Uploading Images (Loading State) -->
           <div v-for="upload in uploadingImages" :key="upload.id" class="image-container loading">
             <div class="loading-placeholder">
@@ -210,22 +230,12 @@ onMounted(() => {
 
         <div class="answer-section">
           <div class="answer-input">
-            <textarea 
-              v-if="currentQuestion?.type === 'LONG_TEXT'" 
-              v-model="currentQuestion.answer.response"
-              :class="{ 'error': validationError }"
-              @input="clearValidationError"
-              placeholder="Type your answer here" 
-              rows="4"
-            ></textarea>
-            <input 
-              v-else-if="currentQuestion" 
-              v-model="currentQuestion.answer.response" 
-              :class="{ 'error': validationError }"
-              @input="clearValidationError"
-              type="text"
-              placeholder="Type your answer here" 
-            />
+            <textarea v-if="currentQuestion?.type === 'LONG_TEXT' && currentQuestion?.answer"
+              v-model="currentQuestion.answer.response" :class="{ 'error': validationError }"
+              @input="clearValidationError" placeholder="Type your answer here" rows="4"></textarea>
+            <input v-else-if="currentQuestion?.answer" v-model="currentQuestion.answer.response"
+              :class="{ 'error': validationError }" @input="clearValidationError" type="text"
+              placeholder="Type your answer here" />
             <div v-if="validationError" class="error-message">{{ validationError }}</div>
           </div>
 
@@ -244,11 +254,13 @@ onMounted(() => {
       <!-- Desktop & Mobile: Navigation -->
       <div class="bottom-section">
         <div class="navigation">
-          <button v-if="currentQuestionIndex > 0" @click="handlePrevious" class="back-btn" :disabled="isUploading">
+          <button v-if="currentQuestionIndex > 0" @click="handlePrevious" class="back-btn"
+            :disabled="isUploading || isSubmitting">
             Back
           </button>
-          <button @click="handleNext" class="next-btn" :disabled="isUploading">
-            {{ isLastQuestion ? 'Submit' : 'Next' }}
+          <button @click="handleNext" class="next-btn" :disabled="isUploading || isSubmitting">
+            <span v-if="isSubmitting">Submitting...</span>
+            <span v-else>{{ isLastQuestion ? 'Submit' : 'Next' }}</span>
           </button>
         </div>
 
@@ -265,14 +277,7 @@ onMounted(() => {
     </div>
 
     <!-- Hidden File Input -->
-    <input
-      ref="fileInputRef"
-      type="file"
-      accept="image/*"
-      multiple
-      style="display: none;"
-      @change="handleFileSelect"
-    />
+    <input ref="fileInputRef" type="file" accept="image/*" multiple style="display: none;" @change="handleFileSelect" />
   </div>
 </template>
 
@@ -332,7 +337,7 @@ onMounted(() => {
     }
 
     .answer-section {
-      margin-bottom: 3rem;
+      margin-bottom: 1.5rem;
 
       @include tablet {
         margin-bottom: 0;
@@ -390,6 +395,23 @@ onMounted(() => {
           font-weight: 400;
           margin-top: 0.25rem;
           line-height: 1.25;
+          min-height: 1rem;
+          visibility: visible;
+        }
+
+        // Reserve space for error message even when not shown
+        &::after {
+          content: '';
+          display: block;
+          min-height: 1rem;
+          margin-top: 0.25rem;
+        }
+
+        // Remove the pseudo-element space when error is shown
+        &:has(.error-message) {
+          &::after {
+            display: none;
+          }
         }
       }
 

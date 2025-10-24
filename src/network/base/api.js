@@ -39,6 +39,19 @@ export const putAPIResponse = async (url, obj, config) => {
   })
 }
 
+export const patchAPIResponse = async (url, obj, config) => {
+  return new Promise((resolve, reject) => {
+    appAxios
+      .patch(url, obj, config)
+      .then(function (response) {
+        resolve(response)
+      })
+      .catch(function (error) {
+        reject(error)
+      })
+  })
+}
+
 // axios expects obj to be { data: your-obj-here }
 export const deleteAPIResponse = async (url, obj) => {
   return new Promise((resolve, reject) => {

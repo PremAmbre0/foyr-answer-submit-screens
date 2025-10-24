@@ -36,7 +36,7 @@ onMounted(() => {
       <!-- Logo -->
       <div class="logo iwfh">
         <!-- <img :src="welcomeScreen.logoUrl || 'https://picsum.photos/200/300'" alt="Logo" /> -->
-        <img src="https://picsum.photos/200/300" alt="Logo" />
+        <!-- <img src="https://picsum.photos/200/300" alt="Logo" /> -->
       </div>
 
       <!-- Title and Description -->
