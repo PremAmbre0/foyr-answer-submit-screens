@@ -16,6 +16,7 @@ const isUploading = ref(false);
 const uploadingImages = ref([]);
 const fileInputRef = ref(null);
 const MAX_IMAGES = 10; // Maximum images allowed per question
+const validationError = ref('');
 const isLastQuestion = computed(() => {
   return currentQuestionIndex.value === totalQuestions.value - 1;
 });
@@ -25,12 +26,15 @@ const handleNext = async () => {
 
   const answer = currentQuestion.value.answer;
 
+  // Clear previous validation error
+  validationError.value = '';
+
   // In preview mode, skip validation and allow navigation without answers
   if (!isPreviewMode.value) {
     // Check if answer.response exists and has content
     if (!answer?.response || !answer.response.trim()) {
       console.log('[VALIDATION] No answer provided');
-      alert('Please provide an answer before proceeding.');
+      validationError.value = 'Please provide an answer before proceeding.';
       return;
     }
   }
@@ -56,6 +60,10 @@ const handleNext = async () => {
     console.log('[CTA] Moving to end screen');
     router.push({ name: 'end' });
   }
+};
+
+const clearValidationError = () => {
+  validationError.value = '';
 };
 
 const handlePrevious = () => {
@@ -202,10 +210,23 @@ onMounted(() => {
 
         <div class="answer-section">
           <div class="answer-input">
-            <textarea v-if="currentQuestion?.type === 'LONG_TEXT'" v-model="currentQuestion.answer.response"
-              placeholder="Type your answer here" rows="4"></textarea>
-            <input v-else-if="currentQuestion" v-model="currentQuestion.answer.response" type="text"
-              placeholder="Type your answer here" />
+            <textarea 
+              v-if="currentQuestion?.type === 'LONG_TEXT'" 
+              v-model="currentQuestion.answer.response"
+              :class="{ 'error': validationError }"
+              @input="clearValidationError"
+              placeholder="Type your answer here" 
+              rows="4"
+            ></textarea>
+            <input 
+              v-else-if="currentQuestion" 
+              v-model="currentQuestion.answer.response" 
+              :class="{ 'error': validationError }"
+              @input="clearValidationError"
+              type="text"
+              placeholder="Type your answer here" 
+            />
+            <div v-if="validationError" class="error-message">{{ validationError }}</div>
           </div>
 
           <!-- Mobile: Action icons below input -->
@@ -348,11 +369,27 @@ onMounted(() => {
             outline: none;
             border-bottom-color: $color-gray-900;
           }
+
+          &.error {
+            border-bottom-color: #EF4444;
+
+            &:focus {
+              border-bottom-color: #EF4444;
+            }
+          }
         }
 
         textarea {
           resize: vertical;
           min-height: 6.25rem;
+        }
+
+        .error-message {
+          color: #EF4444;
+          font-size: 0.75rem;
+          font-weight: 400;
+          margin-top: 0.25rem;
+          line-height: 1.25;
         }
       }
 
