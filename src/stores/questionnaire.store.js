@@ -17,8 +17,8 @@ export const useQuestionnaire = defineStore('questionnaire', {
       console.log(`[INIT] Questionnaire ID: ${questionnaireId}, Preview Mode: ${isPreviewMode}`);
 
       // Fallback to default ID if none provided
-      const id = questionnaireId || '68fb5ef6041c7774ba03e3c6'; //demo
-      // const id = questionnaireId || '68f77abbd2dceb8327c04199'; //play around
+      // const id = questionnaireId || '68fb5ef6041c7774ba03e3c6'; //demo
+      const id = questionnaireId || '68f77abbd2dceb8327c04199'; //play around
 
       try {
         // Fetch real questionnaire data from API

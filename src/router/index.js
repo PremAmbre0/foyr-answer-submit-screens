@@ -40,7 +40,7 @@ router.beforeEach(async (to, from, next) => {
     try {
       // Initialize questionnaire with preview mode flag
       const success = await questionnaireStore.initializeQuestionnaire(questionnaireId, isPreviewMode);
-      
+
       if (success) {
         // Check if questionnaire is locked after initialization
         if (questionnaireStore.questionnaireData?.isLocked && to.name !== 'end') {
@@ -60,11 +60,11 @@ router.beforeEach(async (to, from, next) => {
     }
   } else {
     // If already initialized, check if locked
-    if (questionnaireStore.questionnaireData?.isLocked && to.name !== 'end') {
-      console.log('[ROUTER] Questionnaire is locked, redirecting to end screen');
-      next({ name: 'end' });
-      return;
-    }
+    // if (questionnaireStore.questionnaireData?.isLocked && to.name !== 'end') {
+    //   console.log('[ROUTER] Questionnaire is locked, redirecting to end screen');
+    //   next({ name: 'end' });
+    //   return;
+    // }
     next();
   }
 });

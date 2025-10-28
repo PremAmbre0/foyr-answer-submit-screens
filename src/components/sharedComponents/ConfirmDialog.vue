@@ -1,6 +1,6 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue';
-
+import { defineProps, defineEmits, inject } from 'vue';
+const appIamges = inject("appImages")
 const props = defineProps({
   show: {
     type: Boolean,
@@ -14,10 +14,6 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  icon: {
-    type: String,
-    default: 'warning', // 'warning', 'info', 'danger'
-  },
   confirmText: {
     type: String,
     default: 'Proceed',
@@ -26,9 +22,9 @@ const props = defineProps({
     type: String,
     default: 'Cancel',
   },
-  confirmVariant: {
+  themeColor: {
     type: String,
-    default: 'danger', // 'danger', 'primary'
+    default: '#2563EB',
   },
 });
 
@@ -55,30 +51,27 @@ const handleBackdropClick = () => {
     <div v-if="show" class="dialog-overlay" @click="handleBackdropClick">
       <div class="dialog-container" @click.stop>
         <div class="dialog-content">
-          <!-- Icon -->
-          <div class="dialog-icon" :class="`icon-${icon}`">
-            <svg v-if="icon === 'warning'" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <svg v-else-if="icon === 'danger'" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 3h18v18H3zM15 9l-6 6m0-6l6 6"/>
-            </svg>
+
+          <div class="info-section">
+            <!-- Icon -->
+            <div class="dialog-icon iwpar">
+              <img :src="appIamges['alert-circle.svg']" alt="Alert">
+            </div>
+            <div class="content">
+              <!-- Title -->
+              <div class="dialog-title">{{ title }}</div>
+
+              <!-- Message -->
+              <div class="dialog-message">{{ message }}</div>
+            </div>
           </div>
-
-          <!-- Title -->
-          <h2 class="dialog-title">{{ title }}</h2>
-
-          <!-- Message -->
-          <p class="dialog-message">{{ message }}</p>
 
           <!-- Actions -->
           <div class="dialog-actions">
             <button v-if="cancelText" class="dialog-btn btn-cancel" @click="handleCancel">
               {{ cancelText }}
             </button>
-            <button class="dialog-btn btn-confirm" :class="`btn-${confirmVariant}`" @click="handleConfirm">
+            <button class="dialog-btn btn-confirm" :style="{ backgroundColor: themeColor }" @click="handleConfirm">
               {{ confirmText }}
             </button>
           </div>
@@ -102,115 +95,105 @@ const handleBackdropClick = () => {
   justify-content: center;
   z-index: 9999;
   padding: 1rem;
-}
 
-.dialog-container {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 28rem;
-  width: 100%;
-  overflow: hidden;
-}
+  .dialog-container {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 28.625rem;
+    overflow: hidden;
 
-.dialog-content {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
+    .dialog-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
-.dialog-icon {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+      .info-section {
+        display: flex;
+        align-items: start;
+        justify-content: start;
+        padding: 1rem;
+        gap: .75rem;
 
-  &.icon-warning {
-    background: #fef3c7;
-    color: #d97706;
-  }
+        .dialog-icon {
+          width: 2.5rem;
+          height: 2.5rem;
+          padding: .625rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: start;
+          justify-content: center;
+          flex-shrink: 0;
+          background: #F87171;
+        }
 
-  &.icon-danger {
-    background: #fee2e2;
-    color: #dc2626;
-  }
+        .content {
+          display: flex;
+          flex-direction: column;
+          gap: .25rem;
 
-  &.icon-info {
-    background: #dbeafe;
-    color: #2563eb;
-  }
+          .dialog-title {
+            color: #111827;
 
-  svg {
-    width: 2rem;
-    height: 2rem;
-  }
-}
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.25rem;
+          }
 
-.dialog-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.75rem 0;
-}
-
-.dialog-message {
-  font-size: 1rem;
-  color: #64748b;
-  line-height: 1.6;
-  margin: 0 0 2rem 0;
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 0.75rem;
-  width: 100%;
-  justify-content: center;
-}
-
-.dialog-btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  min-width: 7rem;
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &.btn-cancel {
-    background: #f1f5f9;
-    color: #475569;
-
-    &:hover {
-      background: #e2e8f0;
-    }
-  }
-
-  &.btn-confirm {
-    &.btn-danger {
-      background: #dc2626;
-      color: white;
-
-      &:hover {
-        background: #b91c1c;
+          .dialog-message {
+            color: #6B7280;
+            font-size: .875rem;
+            font-weight: 400;
+            line-height: 1.25rem;
+            /* 142.857% */
+          }
+        }
       }
-    }
 
-    &.btn-primary {
-      background: #2563eb;
-      color: white;
+      .dialog-actions {
+        display: flex;
+        gap: 1rem;
+        padding: .75rem;
+        width: 100%;
+        justify-content: end;
+        align-items: center;
+        border-top: 1px solid #E5E7EB;
 
-      &:hover {
-        background: #1d4ed8;
+        .dialog-btn {
+          padding: .375rem .75rem;
+          border-radius: 0.5rem;
+          font-size: .75rem;
+          font-weight: 700;
+          line-height: 1.25rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: none;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+
+          &:active {
+            transform: scale(0.98);
+          }
+
+          &.btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+
+            &:hover {
+              background: #e2e8f0;
+            }
+          }
+
+          &.btn-confirm {
+            color: white;
+
+            &:hover {
+              opacity: 0.9;
+            }
+          }
+        }
       }
     }
   }

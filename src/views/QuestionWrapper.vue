@@ -10,8 +10,10 @@ import { uploadToS3 } from '@/network/project.service';
 
 const router = useRouter();
 const questionnaireStore = useQuestionnaire();
-const { currentQuestion, progressPercentage, currentQuestionIndex, totalQuestions, isPreviewMode } = storeToRefs(questionnaireStore);
+const { currentQuestion, progressPercentage, currentQuestionIndex, totalQuestions, isPreviewMode, questionnaireData } = storeToRefs(questionnaireStore);
 const appImages = inject("appImages");
+
+const themeColor = computed(() => questionnaireData.value?.themeColor || '#2563EB');
 
 const isUploading = ref(false);
 const uploadingImages = ref([]);
@@ -75,7 +77,7 @@ const clearValidationError = () => {
 
 const handleConfirmSubmit = async () => {
   const answer = currentQuestion.value.answer;
-  
+
   console.log('[ANSWER]', answer);
 
   // Submit answer with loading state
@@ -228,41 +230,50 @@ onMounted(() => {
           <div class="description" v-if="currentQuestion?.description">
             {{ currentQuestion.description }}
           </div>
-        </div>
-        <!-- Image Grid -->
-        <div class="dynamic-image-grid"
-          v-if="currentQuestion?.answer?.referenceImagesByCustomer?.length > 0 || uploadingImages.length > 0">
-          <!-- Uploaded Images -->
-          <div v-for="(imageUrl, index) in currentQuestion?.answer?.referenceImagesByCustomer" :key="imageUrl"
-            class="image-container">
-            <img :src="imageUrl" :alt="`Uploaded image ${index + 1}`">
-            <div class="remove-btn" @click="handleRemoveImage(index)" title="Remove image">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
-            </div>
-          </div>
 
-          <!-- Uploading Images (Loading State) -->
-          <div v-for="upload in uploadingImages" :key="upload.id" class="image-container loading">
-            <div class="loading-placeholder">
-              <div class="spinner"></div>
+          <!-- Question Images (Static - from question data) -->
+          <div class="dynamic-image-grid questions" v-if="currentQuestion?.imageUrl?.length > 0">
+            <div v-for="(imageUrl, index) in currentQuestion.imageUrl" :key="'q-' + index"
+              class="image-container static">
+              <img :src="imageUrl" :alt="`Question image ${index + 1}`">
             </div>
           </div>
         </div>
-
-
 
         <div class="answer-section">
-          <div class="answer-input">
-            <textarea v-if="currentQuestion?.type === 'LONG_TEXT' && currentQuestion?.answer"
-              v-model="currentQuestion.answer.response" :class="{ 'error': validationError }"
-              @input="clearValidationError" placeholder="Type your answer here" rows="4"></textarea>
-            <input v-else-if="currentQuestion?.answer" v-model="currentQuestion.answer.response"
-              :class="{ 'error': validationError }" @input="clearValidationError" type="text"
-              placeholder="Type your answer here" />
+          <div class="answer-input-wrapper">
+            <div class="answer-input">
+              <textarea v-if="currentQuestion?.type === 'LONG_TEXT' && currentQuestion?.answer"
+                v-model="currentQuestion.answer.response" :class="{ 'error': validationError }"
+                @input="clearValidationError" placeholder="Type your answer here" rows="4"></textarea>
+              <input v-else-if="currentQuestion?.answer" v-model="currentQuestion.answer.response"
+                :class="{ 'error': validationError }" @input="clearValidationError" type="text"
+                placeholder="Type your answer here" />
+            </div>
             <div v-if="validationError" class="error-message">{{ validationError }}</div>
+          </div>
+
+          <!-- Image Grid -->
+          <div class="dynamic-image-grid answers"
+            v-if="currentQuestion?.answer?.referenceImagesByCustomer?.length > 0 || uploadingImages.length > 0">
+            <!-- Uploaded Images -->
+            <div v-for="(imageUrl, index) in currentQuestion?.answer?.referenceImagesByCustomer" :key="imageUrl"
+              class="image-container">
+              <img :src="imageUrl" :alt="`Uploaded image ${index + 1}`">
+              <div class="remove-btn" @click="handleRemoveImage(index)" title="Remove image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Uploading Images (Loading State) -->
+            <div v-for="upload in uploadingImages" :key="upload.id" class="image-container loading">
+              <div class="loading-placeholder">
+                <div class="spinner"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Mobile: Action icons below input -->
@@ -284,7 +295,8 @@ onMounted(() => {
             :disabled="isUploading || isSubmitting">
             Back
           </button>
-          <button @click="handleNext" class="next-btn" :disabled="isUploading || isSubmitting">
+          <button @click="handleNext" class="next-btn" :style="{ backgroundColor: themeColor }"
+            :disabled="isUploading || isSubmitting">
             <span v-if="isSubmitting">Submitting...</span>
             <span v-else>{{ isLastQuestion ? 'Submit' : 'Next' }}</span>
           </button>
@@ -306,18 +318,10 @@ onMounted(() => {
     <input ref="fileInputRef" type="file" accept="image/*" multiple style="display: none;" @change="handleFileSelect" />
 
     <!-- Confirm Dialog -->
-    <ConfirmDialog
-      :show="showConfirmDialog"
-      title="Submit Questionnaire"
+    <ConfirmDialog :show="showConfirmDialog" title="Submit Questionnaire"
       message="Once submitted, you won't be able to edit your answers until you request edit access again. Do you want to proceed?"
-      icon="warning"
-      confirm-text="Proceed"
-      cancel-text="Cancel"
-      confirm-variant="primary"
-      @confirm="handleConfirmSubmit"
-      @cancel="handleCancelSubmit"
-      @close="showConfirmDialog = false"
-    />
+      confirm-text="Proceed" cancel-text="Cancel" :theme-color="themeColor" @confirm="handleConfirmSubmit"
+      @cancel="handleCancelSubmit" @close="showConfirmDialog = false" />
   </div>
 </template>
 
@@ -385,48 +389,43 @@ onMounted(() => {
         flex-direction: column;
       }
 
-      .answer-input {
-        margin-bottom: 1rem;
+      .answer-input-wrapper {
+        .answer-input {
+          input,
+          textarea {
+            width: 100%;
+            padding: 0.75rem 0;
+            font-size: 0.875rem;
+            font-weight: 400;
+            border: none;
+            border-bottom: 1px solid $border-gray-300;
+            color: $color-gray-900;
+            transition: border-color 0.2s ease;
+            background: transparent;
 
-        @include tablet {
-          margin-bottom: 1.5rem;
-        }
-
-        input,
-        textarea {
-          width: 100%;
-          padding: 0.75rem 0;
-          font-size: 0.875rem;
-
-          font-weight: 400;
-          border: none;
-          border-bottom: 1px solid $border-gray-300;
-          color: $color-gray-900;
-          transition: border-color 0.2s ease;
-          background: transparent;
-
-          &::placeholder {
-            color: $color-gray-300;
-            font-style: italic;
-          }
-
-          &:focus {
-            outline: none;
-            border-bottom-color: $color-gray-900;
-          }
-
-          &.error {
-            border-bottom-color: #EF4444;
+            &::placeholder {
+              color: $color-gray-300;
+              font-style: italic;
+            }
 
             &:focus {
+              outline: none;
+              border-bottom-color: $color-gray-900;
+            }
+
+            &.error {
               border-bottom-color: #EF4444;
+
+              &:focus {
+                border-bottom-color: #EF4444;
+              }
             }
           }
-        }
 
-        textarea {
-          resize: vertical;
-          min-height: 6.25rem;
+          textarea {
+            resize: vertical;
+            min-height: 6.25rem;
+          }
         }
 
         .error-message {
@@ -436,7 +435,6 @@ onMounted(() => {
           margin-top: 0.25rem;
           line-height: 1.25;
           min-height: 1rem;
-          visibility: visible;
         }
 
         // Reserve space for error message even when not shown
@@ -540,7 +538,15 @@ onMounted(() => {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(5.9375rem, 8.75rem));
       gap: .25rem .5rem;
-      margin-bottom: 1.5rem;
+
+      &.questions {
+        grid-column: 2;
+        margin-top: 1rem;
+      }
+
+      &.answers {
+        margin: .75rem 0;
+      }
 
       .image-container {
         position: relative;
@@ -550,8 +556,12 @@ onMounted(() => {
         max-height: 7.5rem;
         background: #f3f4f6;
 
-        &:hover .remove-btn {
+        &:not(.static):hover .remove-btn {
           opacity: 1;
+        }
+
+        &.static .remove-btn {
+          display: none;
         }
 
         img {

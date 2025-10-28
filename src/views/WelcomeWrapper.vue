@@ -14,6 +14,7 @@ const { questionnaireData } = storeToRefs(questionnaireStore);
 const { selectedMode } = storeToRefs(uiStatesStore);
 
 const welcomeScreen = computed(() => questionnaireData.value?.welcomeScreen || {});
+const themeColor = computed(() => questionnaireData.value?.themeColor || '#2563EB');
 
 const startQuestionnaire = () => {
   if (selectedMode.value === 'conversation') {
@@ -50,7 +51,7 @@ onMounted(() => {
       <!-- Conversation Mode WIP or Start Button -->
       <!-- <ConversationMode v-if="selectedMode === 'conversation'" /> -->
       <div class="cta-section">
-        <button class="start-button" @click="startQuestionnaire">Let's Begin</button>
+        <button class="start-button" :style="{ backgroundColor: themeColor }" @click="startQuestionnaire">Let's Begin</button>
       </div>
     </div>
 
